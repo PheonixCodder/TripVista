@@ -2,16 +2,30 @@ import { ID, OAuthProvider, Query } from "appwrite";
 import { account, database, appwriteConfig } from "../appwrite/client";
 import { redirect } from "react-router";
 
-export const getExistingUser = async (id: string) => {
+export const loginWithGoogle = async () => {
     try {
-        const { documents, total } = await database.listDocuments(
-            appwriteConfig.databaseId,
-            appwriteConfig.userCollectionId,
-            [Query.equal("accountId", id)]
+        account.createOAuth2Session(
+            OAuthProvider.Google,
+            `${window.location.origin}/`,
+            `${window.location.origin}/404`
         );
-        return total > 0 ? documents[0] : null;
     } catch (error) {
-        console.error("Error fetching user:", error);
+        console.error("Error during OAuth2 session creation:", error);
+    }
+};
+
+const getGooglePicture = async (accessToken: string) => {
+    try {
+        const response = await fetch(
+            "https://people.googleapis.com/v1/people/me?personFields=photos",
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        if (!response.ok) throw new Error("Failed to fetch Google profile picture");
+
+        const { photos } = await response.json();
+        return photos?.[0]?.url || null;
+    } catch (error) {
+        console.error("Error fetching Google picture:", error);
         return null;
     }
 };
@@ -45,39 +59,17 @@ export const storeUserData = async () => {
     }
 };
 
-const getGooglePicture = async (accessToken: string) => {
+export const getExistingUser = async (id: string) => {
     try {
-        const response = await fetch(
-            "https://people.googleapis.com/v1/people/me?personFields=photos",
-            { headers: { Authorization: `Bearer ${accessToken}` } }
+        const { documents, total } = await database.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            [Query.equal("accountId", id)]
         );
-        if (!response.ok) throw new Error("Failed to fetch Google profile picture");
-
-        const { photos } = await response.json();
-        return photos?.[0]?.url || null;
+        return total > 0 ? documents[0] : null;
     } catch (error) {
-        console.error("Error fetching Google picture:", error);
+        console.error("Error fetching user:", error);
         return null;
-    }
-};
-
-export const loginWithGoogle = async () => {
-    try {
-        account.createOAuth2Session(
-            OAuthProvider.Google,
-            `${window.location.origin}/`,
-            `${window.location.origin}/404`
-        );
-    } catch (error) {
-        console.error("Error during OAuth2 session creation:", error);
-    }
-};
-
-export const logoutUser = async () => {
-    try {
-        await account.deleteSession("current");
-    } catch (error) {
-        console.error("Error during logout:", error);
     }
 };
 
@@ -101,3 +93,28 @@ export const getUser = async () => {
         return null;
     }
 };
+
+export const logoutUser = async () => {
+    try {
+        await account.deleteSession("current");
+    } catch (error) {
+        console.error("Error during logout:", error);
+    }
+};
+
+export const getAllUsers = async (limit: number, offset: number) => {
+    try {
+        const { documents: users, total } = await database.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            [Query.limit(limit), Query.offset(offset)]
+        )
+
+        if(total === 0) return { users: [], total };
+
+        return { users, total };
+    } catch (e) {
+        console.log('Error fetching users')
+        return { users: [], total: 0 }
+    }
+}
