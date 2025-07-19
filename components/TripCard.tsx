@@ -1,6 +1,6 @@
 import {Link, useLocation} from "react-router";
 import {ChipDirective, ChipListComponent, ChipsDirective} from "@syncfusion/ej2-react-buttons";
-import {cn, getFirstWord} from "../lib/utils";
+import {cn, getFirstWord} from "~/lib/utils";
 
 const TripCard = ({ id, name, location, imageUrl, tags, price }: TripCardProps) => {
     const path = useLocation();
@@ -23,7 +23,7 @@ const TripCard = ({ id, name, location, imageUrl, tags, price }: TripCardProps) 
             <div className="mt-5 pl-[18px] pr-3.5 pb-5">
                 <ChipListComponent id="travel-chip">
                     <ChipsDirective>
-                        {tags.map((tag, index) => (
+                        {tags?.map((tag, index) => (
                             <ChipDirective
                                 key={index}
                                 text={getFirstWord(tag)}
